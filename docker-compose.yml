@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+
+  restapi:
+    image: failure_predictor:v0.994
+    container_name: api_failure_predictor
+    environment:
+      - API_URL=http://api_failure_predictor:8000
+      - REDIS_URL=redis://redis_server_failure_predictor:6379/0
+    networks:
+      - fp_net_fpredictor
+    ports:
+      - 8000:8000
+    command: python manage.py run
+    depends_on:
+      - redis
+
+  worker:
+    image: failure_predictor:v0.994
+    command: rq worker prediction_tasks -u redis://redis_server_failure_predictor:6379/
+    container_name: rq_failure_predictor
+    networks:
+      - fp_net_fpredictor
+    depends_on:
+      - redis
+
+  redis:
+    image: failure_predictor:v0.994
+    container_name: redis_server_failure_predictor
+    networks:
+      - fp_net_fpredictor
+    command: redis-server --protected-mode no
+ 
+networks:
+  fp_net_fpredictor:
+    driver: bridge
